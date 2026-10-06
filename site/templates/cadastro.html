@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Cadastro · Magnobag{% endblock %}
+{% block conteudo %}
+<section class="hero-entrada">
+  <div>
+    <p class="eyebrow blur-reveal">Plano grátis · Sem cartão</p>
+    <h1 class="titulo-hero">
+      <span class="blur-reveal">Comece a</span>
+      <span class="blur-reveal-2 texto-gradiente">acompanhar.</span>
+    </h1>
+    {% include "_mini_grafico.html" %}
+    <p class="hero-sub blur-reveal-3">Acompanhe 2 ativos de graça. Quando quiser tudo liberado
+      (gráficos de 5 anos, backtests, simulador e todas as notícias), a assinatura custa {{ preco }}.</p>
+  </div>
+  <div class="caixa-form blur-reveal-2">
+    <p class="eyebrow">Novo por aqui</p>
+    <h2>Criar conta</h2>
+    <form method="post">
+      {{ campo_csrf() }}
+      <label>Nome <input type="text" name="nome" required autofocus value="{{ request.form.nome }}"></label>
+      <label>E-mail <input type="email" name="email" required value="{{ request.form.email }}"></label>
+      <label>Senha (mín. 8 caracteres) <input type="password" name="senha" minlength="8" required></label>
+      <button type="submit">Criar conta grátis</button>
+    </form>
+    <p class="alt">Já tem conta? <a href="{{ url_for('login') }}">Entrar</a></p>
+  </div>
+</section>
+{% endblock %}

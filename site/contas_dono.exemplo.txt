@@ -1,0 +1,3 @@
+# Copie este arquivo para contas_dono.txt e coloque o e-mail do dono do site
+# (só ele vê o mascote e as funções exclusivas). Um e-mail por linha.
+# dono@email.com

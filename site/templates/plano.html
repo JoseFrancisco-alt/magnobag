@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Assinatura · Magnobag{% endblock %}
+{% block conteudo %}
+<section class="plano">
+  <div class="cadeado">✦</div>
+  <h1>Assine o Magnobag</h1>
+  <p class="sutil">Tudo o que você precisa para acompanhar seus ativos, num lugar só.</p>
+
+  <ul class="lista-beneficios">
+    <li>Painel com ações da B3 e criptomoedas, gráficos, médias móveis e RSI</li>
+    <li>Backtest de estratégias e a taxa de acerto real de cada uma</li>
+    <li>Notícias dos seus ativos reunidas, sem precisar procurar</li>
+    <li>Simulador de gale: veja o que acontece com quem segue bots de sinais</li>
+  </ul>
+
+  <table class="comparacao">
+    <thead><tr><th></th><th>Grátis</th><th>Assinatura</th></tr></thead>
+    <tbody>
+      <tr><td>Ativos acompanhados</td><td>até {{ gratis_max_ativos }}</td><td>ilimitado</td></tr>
+      <tr><td>Gráfico de preço</td><td>6 meses</td><td>5 anos</td></tr>
+      <tr><td>Notícias por ativo</td><td>{{ gratis_max_noticias }}</td><td>todas</td></tr>
+      <tr><td>RSI, backtest e taxa de acerto</td><td>—</td><td>✓</td></tr>
+      <tr><td>Simulador de gale</td><td>—</td><td>✓</td></tr>
+    </tbody>
+  </table>
+
+  <div class="preco-plano">{{ preco }}</div>
+  <form method="post" action="{{ url_for('assinar') }}">
+      {{ campo_csrf() }}
+    <button type="submit" class="botao-grande">Assinar agora</button>
+  </form>
+  {% if teste %}
+  <p class="sutil pequeno">Modo de teste: nenhum valor é cobrado, o acesso é liberado na hora.</p>
+  {% endif %}
+  <p class="pequeno"><a href="{{ url_for('painel') }}">Continuar no plano grátis</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block titulo %}Painel · Magnobag{% endblock %}
+{% block conteudo %}
+{% if not tem_acesso %}
+<div class="faixa-gratis blur-reveal">
+  <div>
+    <strong>Você está no plano grátis.</strong>
+    <span class="sutil">Até {{ gratis_max_ativos }} ativos, gráfico dos últimos 6 meses e {{ gratis_max_noticias }} notícias por ativo.</span>
+  </div>
+  <a href="{{ url_for('plano') }}" class="botao-assinar">Liberar tudo por {{ preco }}</a>
+</div>
+{% endif %}
+
+<div class="cabecalho-pagina">
+  <div>
+    <p class="eyebrow blur-reveal">Painel</p>
+    <h1 class="blur-reveal-2">Olá, {{ session.nome.split()[0]|capitalize }}</h1>
+    <p class="sutil blur-reveal-3">Seus ativos {% if not tem_acesso %}({{ favoritos|length }} de {{ gratis_max_ativos }}){% endif %} com o fechamento mais recente.</p>
+  </div>
+</div>
+
+<div class="fita" id="fita" hidden aria-label="Cotações dos seus ativos"><div class="fita-trilho" id="fitaTrilho"></div></div>
+
+{% if favoritos %}
+<div class="grade">
+  {% for t in favoritos %}
+  <a class="cartao blur-reveal" style="animation-delay: {{ loop.index0 * 0.06 }}s" href="{{ url_for('ativo', ticker=t) }}" data-ticker="{{ t }}">
+    <div class="cartao-topo">
+      <strong>{{ t.replace('.SA', '') }}</strong>
+      <span class="sutil">{{ nomes.get(t, '') }}</span>
+    </div>
+    <div class="preco"><span class="esqueleto"></span></div>
+    <div class="detalhes sutil"><span class="esqueleto" style="width: 50%"></span></div>
+    <svg class="faisca" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"></svg>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="sutil">Você ainda não acompanha nenhum ativo. Adicione um abaixo.</p>
+{% endif %}
+
+<section class="painel-bloco">
+  <h2>Adicionar ativo</h2>
+  {% for grupo, ativos in catalogo.items() %}
+  <h3 class="grupo">{{ grupo }}</h3>
+  <div class="chips">
+    {% for t, nome in ativos.items() if t not in favoritos %}
+    <form method="post" action="{{ url_for('adicionar_favorito') }}">
+      {{ campo_csrf() }}
+      <input type="hidden" name="ticker" value="{{ t }}">
+      <button type="submit" class="chip">+ {{ nome }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <form method="post" action="{{ url_for('adicionar_favorito') }}" class="linha-form">
+      {{ campo_csrf() }}
+    <input type="text" name="ticker" placeholder="Outro código (ex.: TAEE11.SA, ADA-USD)" required>
+    <button type="submit">Adicionar</button>
+  </form>
+</section>
+
+<p class="rodape-conta sutil pequeno">
+  {% if conta_gratis %}
+  Sua conta tem acesso gratuito.
+  {% elif tem_acesso %}
+  Assinatura ativa.
+  <form method="post" action="{{ url_for('cancelar') }}" class="em-linha">
+      {{ campo_csrf() }}
+    <button type="submit" class="link">Cancelar assinatura</button>
+  </form>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const pct = new Intl.NumberFormat("pt-BR", { style: "percent", minimumFractionDigits: 2, signDisplay: "always" });
+  const cor = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+
+  function faisca(svg, valores, subiu) {
+    const v = valores.filter((x) => x !== null);
+    if (v.length < 2) return;
+    const min = Math.min(...v), max = Math.max(...v), faixa = max - min || 1;
+    const pontos = v.map((x, i) => `${(i / (v.length - 1)) * 100},${28 - ((x - min) / faixa) * 26}`).join(" ");
+    const linha = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    linha.setAttribute("points", pontos);
+    linha.setAttribute("stroke", subiu ? cor("--positivo") : cor("--negativo"));
+    linha.setAttribute("vector-effect", "non-scaling-stroke");
+    svg.append(linha);
+  }
+
+  function itemFita(ticker, d) {
+    const span = document.createElement("span");
+    span.className = "fita-item";
+    const nome = document.createElement("b");
+    nome.textContent = ticker.replace(".SA", "");
+    const preco = document.createElement("span");
+    preco.textContent = new Intl.NumberFormat("pt-BR", { style: "currency", currency: d.moeda }).format(d.preco);
+    const variacao = document.createElement("span");
+    variacao.className = d.variacao_dia >= 0 ? "positivo" : "negativo";
+    variacao.textContent = `${d.variacao_dia >= 0 ? "▲" : "▼"} ${pct.format(d.variacao_dia)}`;
+    span.append(nome, preco, variacao);
+    return span;
+  }
+
+  const cartoes = [...document.querySelectorAll(".cartao[data-ticker]")];
+  Promise.all(cartoes.map(async (cartao) => {
+    const preco = cartao.querySelector(".preco");
+    const detalhes = cartao.querySelector(".detalhes");
+    try {
+      const r = await fetch(`/api/resumo/${encodeURIComponent(cartao.dataset.ticker)}`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro);
+      const subiu = d.variacao_dia >= 0;
+      preco.innerHTML = `${new Intl.NumberFormat("pt-BR", { style: "currency", currency: d.moeda }).format(d.preco)} <span class="${subiu ? "positivo" : "negativo"}">${pct.format(d.variacao_dia)}</span>`;
+      detalhes.textContent = `Tendência de ${d.tendencia} · RSI ${d.rsi.toFixed(0)} · ${d.data}`;
+      const ultimos = d.ultimos_30 || [];
+      faisca(cartao.querySelector(".faisca"), ultimos, ultimos.at(-1) >= ultimos[0]);
+      return [cartao.dataset.ticker, d];
+    } catch (e) {
+      preco.textContent = "sem dados";
+      detalhes.textContent = "";
+      return null;
+    }
+  })).then((resultados) => {
+    const validos = resultados.filter(Boolean);
+    if (!validos.length) return;
+    const trilho = document.getElementById("fitaTrilho");
+    // repete os itens até encher a faixa e duplica tudo para o loop não ter emenda
+    const vezes = Math.max(2, Math.ceil(8 / validos.length));
+    for (let copia = 0; copia < 2; copia++)
+      for (let i = 0; i < vezes; i++)
+        validos.forEach(([t, d]) => trilho.append(itemFita(t, d)));
+    document.getElementById("fita").hidden = false;
+  });
+</script>
+{% endblock %}

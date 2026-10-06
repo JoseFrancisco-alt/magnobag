@@ -1,0 +1,22 @@
+<div class="mascote calmo" id="mascote">
+  <div class="balao" id="balao" hidden role="status" aria-live="polite">
+    <button type="button" class="balao-fechar" id="balaoFechar" aria-label="Fechar aviso">×</button>
+    <p class="balao-texto" id="balaoTexto"></p>
+    <div class="balao-rodape">
+      <a id="balaoLink" target="_blank" rel="noopener noreferrer" hidden>Ler notícia ↗</a>
+      <span class="balao-contador" id="balaoContador"></span>
+    </div>
+  </div>
+  <button type="button" class="mascote-corpo" id="mascoteCorpo" aria-label="Mimikyu, seu mascote. Clique para ver os avisos">
+    <span class="mascote-bolinha" id="mascoteBolinha" hidden></span>
+    {% if imagem_mascote %}
+    <!-- imagem própria do dono (static/mascote.png, .gif ou .webp) -->
+    <img class="mascote-imagem" src="{{ url_for('static', filename=imagem_mascote) }}" alt="">
+    <span class="mascote-humor" id="mascoteHumor" aria-hidden="true"></span>
+    {% else %}
+    <!-- pixel art desenhada pelo mascote.js -->
+    <svg id="mascotePixels" viewBox="0 0 28 28" shape-rendering="crispEdges" aria-hidden="true"></svg>
+    {% endif %}
+  </button>
+</div>
+<script src="{{ url_for('static', filename='mascote.js') }}"></script>

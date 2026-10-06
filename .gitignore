@@ -1,0 +1,18 @@
+# dados e segredos: nunca vão para o GitHub
+site/radar.db
+site/.secret_key
+site/contas_gratis.txt
+site/contas_dono.txt
+.env
+
+# imagem do mascote (arte de terceiros) e a foto de onde ela saiu
+site/static/mascote.png
+site/static/mascote.gif
+site/static/mascote.webp
+site/tools/mimikyu_original.jpg
+
+# coisas do computador
+__pycache__/
+*.pyc
+.claude/
+.vscode/

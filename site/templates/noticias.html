@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Notícias · Magnobag{% endblock %}
+{% block conteudo %}
+<h1>Notícias dos seus ativos</h1>
+<p class="sutil">Manchetes dos últimos 7 dias. Clique para ler na fonte original.</p>
+
+{% if favoritos %}
+<div class="chips filtros" id="filtros">
+  <button type="button" class="chip ativo" data-filtro="">Todos</button>
+  {% for t in favoritos %}
+  <button type="button" class="chip" data-filtro="{{ t }}">{{ nomes.get(t, t.replace('.SA', '')) }}</button>
+  {% endfor %}
+</div>
+<ul class="lista-noticias painel-bloco" id="listaNoticias"></ul>
+{% if not tem_acesso %}
+<p class="sutil">Plano grátis: {{ gratis_max_noticias }} notícias mais recentes por ativo.
+  <a href="{{ url_for('plano') }}">Assine por {{ preco }}</a> para ver todas.</p>
+{% endif %}
+{% else %}
+<p class="sutil">Adicione ativos no <a href="{{ url_for('painel') }}">painel</a> para ver as notícias deles aqui.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='noticias.js') }}"></script>
+<script>
+  const lista = document.getElementById("listaNoticias");
+  if (lista) {
+    mostrarNoticias(lista, {{ favoritos|tojson }}, true);
+    document.getElementById("filtros").addEventListener("click", (e) => {
+      const botao = e.target.closest("[data-filtro]");
+      if (!botao) return;
+      document.querySelectorAll("#filtros .chip").forEach((b) => b.classList.toggle("ativo", b === botao));
+      lista.querySelectorAll(".noticia").forEach((li) => {
+        li.hidden = botao.dataset.filtro !== "" && li.dataset.ticker !== botao.dataset.filtro;
+      });
+    });
+  }
+</script>
+{% endblock %}

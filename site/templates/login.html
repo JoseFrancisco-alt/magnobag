@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar · Magnobag{% endblock %}
+{% block conteudo %}
+<section class="hero-entrada">
+  <div>
+    <p class="eyebrow blur-reveal">Ações B3 · Cripto · Notícias</p>
+    <h1 class="titulo-hero">
+      <span class="blur-reveal">Leia o mercado</span>
+      <span class="blur-reveal-2 texto-gradiente">com dados.</span>
+    </h1>
+    {% include "_mini_grafico.html" %}
+    <p class="hero-sub blur-reveal-3">Gráficos, indicadores, backtests e notícias dos seus ativos num lugar só,
+      com a taxa de acerto real de cada estratégia. Sem promessa de lucro.</p>
+    <div class="hero-numeros blur-reveal-3">
+      <div><strong>5 anos</strong><span>de histórico</span></div>
+      <div><strong>3</strong><span>estratégias testadas</span></div>
+      <div><strong>7 dias</strong><span>de notícias</span></div>
+    </div>
+  </div>
+  <div class="caixa-form blur-reveal-2">
+    <p class="eyebrow">Bem-vindo de volta</p>
+    <h2>Entrar</h2>
+    <form method="post">
+      {{ campo_csrf() }}
+      <label>E-mail <input type="email" name="email" required autofocus></label>
+      <label>Senha <input type="password" name="senha" required></label>
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="alt">Ainda não tem conta? <a href="{{ url_for('cadastro') }}">Cadastre-se grátis</a></p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}{{ ticker }} · Magnobag{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-ativo">
+  <div>
+    <a href="{{ url_for('painel') }}" class="voltar">← Painel</a>
+    <h1>{{ ticker.replace('.SA', '') }} <span class="sutil">{{ nome if nome != ticker else '' }}</span></h1>
+  </div>
+  <form method="post" action="{{ url_for('remover_favorito' if favorito else 'adicionar_favorito') }}">
+      {{ campo_csrf() }}
+    <input type="hidden" name="ticker" value="{{ ticker }}">
+    <input type="hidden" name="voltar" value="{{ url_for('ativo', ticker=ticker) }}">
+    <button type="submit" class="{{ 'secundario' if favorito else '' }}">
+      {{ '★ Acompanhando' if favorito else '☆ Acompanhar' }}
+    </button>
+  </form>
+</div>
+
+<div id="carregando" class="sutil">Baixando 5 anos de dados…</div>
+<div id="erro" class="aviso erro" hidden></div>
+
+<div id="conteudo" hidden>
+  <div class="numeros" id="numeros"></div>
+
+  <section class="painel-bloco">
+    <h2>Preço e médias móveis {% if not tem_acesso %}<span class="sutil pequeno">(últimos 6 meses)</span>{% endif %}</h2>
+    <p class="sutil">Quando a média de 20 dias está acima da de 50, o preço vem subindo nas últimas semanas (tendência de alta).</p>
+    <div class="grafico alto"><canvas id="graficoPreco"></canvas></div>
+  </section>
+
+  {% if tem_acesso %}
+  <section class="painel-bloco">
+    <h2>RSI (14 dias)</h2>
+    <p class="sutil" id="leituraRsi"></p>
+    <div class="grafico baixo"><canvas id="graficoRsi"></canvas></div>
+  </section>
+
+  <section class="painel-bloco">
+    <h2>Backtest: quanto 1.000 investidos teriam virado</h2>
+    <p class="sutil">Simulação com 0,1% de custo por operação, agindo sempre no dia seguinte ao sinal.</p>
+    <div class="tabela-rolagem">
+      <table>
+        <thead><tr><th>Estratégia</th><th>Resultado</th><th>Pior queda</th><th>Operações</th></tr></thead>
+        <tbody id="tabelaEstrategias"></tbody>
+      </table>
+    </div>
+    <div class="grafico alto"><canvas id="graficoCapital"></canvas></div>
+  </section>
+  {% else %}
+  <section class="painel-bloco bloqueado">
+    <div class="bloqueado-fundo" aria-hidden="true">
+      <h2>RSI (14 dias)</h2><h2>Backtest: quanto 1.000 investidos teriam virado</h2>
+      <h2>Dá pra prever o dia seguinte?</h2>
+    </div>
+    <div class="bloqueado-frente">
+      <div class="cadeado">🔒</div>
+      <strong>Disponível na assinatura</strong>
+      <p class="sutil">Gráfico de 5 anos, RSI, backtest de 3 estratégias, taxa de acerto real e todas as notícias.</p>
+      <a href="{{ url_for('plano') }}" class="botao-assinar">Assinar por {{ preco }}</a>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="painel-bloco">
+    <h2>Notícias recentes</h2>
+    <ul class="lista-noticias" id="listaNoticias"></ul>
+  </section>
+
+  {% if tem_acesso %}
+  <section class="painel-bloco destaque">
+    <h2>Dá pra prever o dia seguinte?</h2>
+    <p id="textoPalpite"></p>
+    <div class="barras" id="barrasPalpite"></div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='noticias.js') }}"></script>
+<script>const TICKER = {{ ticker|tojson }};</script>
+<script src="{{ url_for('static', filename='ativo.js') }}"></script>
+{% endblock %}

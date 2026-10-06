@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magnobag · Análise de mercado com dados</title>
+  <meta name="description" content="Magnobag: plataforma de análise de ações da B3 e criptomoedas com gráficos, indicadores, backtests, notícias e um simulador que mostra a verdade sobre os bots de gale.">
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fundo: #08090d; --superficie: #12141b; --superficie-2: #181b24; --borda: #22252f; --borda-forte: #30343f;
+      --texto: #eef0f6; --texto-sutil: #8b91a1; --destaque: #3d8bff; --destaque-claro: #9cc4ff;
+      --positivo: #3ddc97; --negativo: #ff6b7a;
+      --titulo: "Clash Display", "General Sans", system-ui, sans-serif;
+      --corpo: "General Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "Geist Mono", ui-monospace, monospace;
+      --ease: cubic-bezier(.2, .8, .2, 1);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--fundo); color: var(--texto); font: 400 16px/1.6 var(--corpo); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    a { color: var(--destaque-claro); text-decoration: none; }
+    a:hover { color: var(--texto); }
+    img { max-width: 100%; display: block; }
+    .brilho { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+    .brilho::before, .brilho::after { content: ""; position: absolute; width: 60vmax; aspect-ratio: 1; border-radius: 50%; filter: blur(90px); opacity: .2; }
+    .brilho::before { background: var(--destaque); top: -30vmax; right: -15vmax; }
+    .brilho::after { background: var(--positivo); bottom: -40vmax; left: -15vmax; opacity: .08; }
+    .largura { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+
+    header { padding: 1.4rem 0; }
+    header .largura { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .marca { display: inline-flex; align-items: center; gap: .6rem; color: var(--texto); }
+    .marca svg { width: 34px; height: 34px; }
+    .marca b { font: 600 1.35rem/1 var(--titulo); letter-spacing: -.01em; }
+    .marca b span { color: var(--destaque); }
+    .marca small { display: block; margin-top: .3rem; font: 500 8.5px/1 var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--positivo); }
+    .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1.1rem; border-radius: 10px; font-weight: 600; transition: transform .2s var(--ease), box-shadow .25s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-azul { background: var(--destaque); color: #fff; }
+    .btn-azul:hover { color: #fff; box-shadow: 0 10px 28px -12px var(--destaque); }
+    .btn-borda { border: 1px solid var(--borda-forte); color: var(--texto); }
+    .btn-borda:hover { border-color: var(--destaque); }
+
+    .hero { padding: clamp(3rem, 8vw, 6rem) 0 3rem; }
+    .eyebrow { font: 500 11px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--destaque-claro); margin: 0 0 .8rem; }
+    h1 { font: 600 clamp(2.8rem, 8vw, 6rem)/.95 var(--titulo); letter-spacing: -.035em; margin: 0 0 1.4rem; }
+    h1 em { font-style: normal; background: linear-gradient(110deg, #3d8bff, #3ddc97, #9cc4ff, #3d8bff); background-size: 300% 100%;
+      -webkit-background-clip: text; background-clip: text; color: transparent; animation: gradiente 8s linear infinite; }
+    @keyframes gradiente { to { background-position: 300% 0; } }
+    .hero p.sub { max-width: 54ch; color: var(--texto-sutil); font-size: 1.1rem; margin: 0 0 2rem; }
+    .acoes { display: flex; flex-wrap: wrap; gap: .7rem; }
+    .aviso-demo { margin-top: 1.2rem; font: 400 12px var(--mono); color: var(--texto-sutil); }
+
+    .vitrine { padding: 1rem 0 4rem; }
+    .print { border: 1px solid var(--borda-forte); border-radius: 14px; overflow: hidden; box-shadow: 0 40px 100px -50px var(--destaque); }
+    .prints { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .prints figure { margin: 0; }
+    .prints figcaption { font-size: .85rem; color: var(--texto-sutil); margin-top: .5rem; }
+
+    section h2 { font: 600 clamp(1.7rem, 3.4vw, 2.4rem)/1.1 var(--titulo); letter-spacing: -.02em; margin: 0 0 .6rem; }
+    section > .largura > p.intro { color: var(--texto-sutil); max-width: 60ch; margin: 0 0 2rem; }
+    .bloco { padding: 4rem 0; border-top: 1px solid var(--borda); }
+    .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+    .cartao { background: var(--superficie); border: 1px solid var(--borda); border-radius: 14px; padding: 1.3rem; transition: transform .3s var(--ease), border-color .3s; }
+    .cartao:hover { transform: translateY(-3px); border-color: var(--borda-forte); }
+    .cartao .icone { font-size: 1.5rem; }
+    .cartao h3 { font: 600 1.1rem var(--titulo); margin: .6rem 0 .3rem; }
+    .cartao p { margin: 0; color: var(--texto-sutil); font-size: .93rem; }
+
+    .numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .numero { background: var(--superficie); border: 1px solid var(--borda); border-radius: 14px; padding: 1.2rem; }
+    .numero strong { display: block; font: 500 2rem var(--mono); }
+    .numero span { color: var(--texto-sutil); font-size: .9rem; }
+    .positivo { color: var(--positivo); } .negativo { color: var(--negativo); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chip { border: 1px solid var(--borda-forte); border-radius: 999px; padding: .4rem .85rem; font-size: .88rem; background: var(--superficie); }
+    pre { background: var(--superficie); border: 1px solid var(--borda); border-radius: 12px; padding: 1.1rem 1.2rem; overflow-x: auto; font: 400 .9rem/1.7 var(--mono); }
+    pre .c { color: var(--texto-sutil); }
+
+    footer { border-top: 1px solid var(--borda); padding: 2rem 0 3rem; color: var(--texto-sutil); font: 400 12px/1.7 var(--mono); }
+
+    .surgir { opacity: 0; filter: blur(10px); transform: translateY(14px); transition: opacity .8s var(--ease), filter .8s var(--ease), transform .8s var(--ease); }
+    .surgir.visivel { opacity: 1; filter: none; transform: none; }
+    @media (max-width: 720px) { .prints { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .surgir { opacity: 1; filter: none; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="brilho" aria-hidden="true"></div>
+
+  <header>
+    <div class="largura">
+      <a class="marca" href="#" aria-label="Magnobag">
+        <svg viewBox="0 0 80 80" aria-hidden="true" stroke-width="2.5" stroke-linecap="round">
+          <line x1="15" y1="10" x2="15" y2="72" stroke="#3d8bff"/><rect x="9" y="18" width="12" height="48" rx="2.5" fill="#3d8bff"/>
+          <line x1="31" y1="30" x2="31" y2="66" stroke="#3d8bff"/><rect x="25" y="36" width="12" height="24" rx="2.5" fill="#3d8bff"/>
+          <line x1="47" y1="26" x2="47" y2="62" stroke="#3d8bff"/><rect x="41" y="32" width="12" height="24" rx="2.5" fill="#3d8bff"/>
+          <line x1="63" y1="4" x2="63" y2="72" stroke="#3ddc97"/><rect x="57" y="10" width="12" height="56" rx="2.5" fill="#3ddc97"/>
+        </svg>
+        <span><b>magno<span>bag</span></b><small>Análise de mercado</small></span>
+      </a>
+      <a class="btn btn-borda" href="https://github.com/JoseFrancisco-alt/magnobag">Código no GitHub ↗</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="largura">
+        <p class="eyebrow">Ações B3 · Cripto · Câmbio · Notícias</p>
+        <h1>Leia o mercado<br><em>com dados.</em></h1>
+        <p class="sub">Magnobag reúne gráficos, indicadores, backtests e notícias dos seus ativos num lugar só,
+          sempre mostrando a taxa de acerto real de cada estratégia. Sem promessa de lucro, sem "sinal milagroso".</p>
+        <div class="acoes">
+          <a class="btn btn-azul" href="#recursos">Ver o que ele faz</a>
+          <a class="btn btn-borda" href="#rodar">Rodar no meu computador</a>
+        </div>
+        <p class="aviso-demo">Esta é a vitrine do projeto. O sistema completo roda com Python (Flask) e ainda não está hospedado.</p>
+      </div>
+    </section>
+
+    <section class="vitrine">
+      <div class="largura">
+        <figure class="print surgir"><img src="img/painel.jpg" alt="Painel do Magnobag com cotações, faixa de preços correndo e mini gráficos de cada ativo" width="800" height="481"></figure>
+        <div class="prints">
+          <figure class="surgir"><div class="print"><img src="img/ativo.jpg" alt="Página de um ativo com gráfico de 5 anos e médias móveis" loading="lazy" width="800" height="481"></div>
+            <figcaption>Cada ativo: 5 anos de preço, médias móveis, RSI e backtest.</figcaption></figure>
+          <figure class="surgir"><div class="print"><img src="img/simulador-grafico.jpg" alt="Simulador de gale mostrando a banca das pessoas caindo ao longo do tempo" loading="lazy" width="800" height="481"></div>
+            <figcaption>Simulador de gale: o que acontece com quem segue bots de sinais.</figcaption></figure>
+          <figure class="surgir"><div class="print"><img src="img/entrada.jpg" alt="Tela de entrada do Magnobag" loading="lazy" width="800" height="481"></div>
+            <figcaption>Entrada com cadastro, plano grátis e assinatura.</figcaption></figure>
+          <figure class="surgir"><div class="print"><img src="img/simulador.jpg" alt="Controles e resultados do simulador de gale" loading="lazy" width="800" height="481"></div>
+            <figcaption>98,8% quebram a banca em 90 dias com um sinal de 50%.</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco" id="recursos">
+      <div class="largura">
+        <h2>O que ele faz</h2>
+        <p class="intro">Uma plataforma completa de análise, do cadastro ao gráfico, pensada para estudar o mercado com honestidade.</p>
+        <div class="grade">
+          <div class="cartao surgir"><div class="icone">📊</div><h3>Painel de ativos</h3><p>Ações da B3, cripto e câmbio com preço, variação, tendência, RSI e um mini gráfico de 30 dias.</p></div>
+          <div class="cartao surgir"><div class="icone">🧪</div><h3>Backtests honestos</h3><p>Compara estratégias com "comprar e segurar", com custo de operação e sem olhar o futuro.</p></div>
+          <div class="cartao surgir"><div class="icone">🎯</div><h3>Taxa de acerto real</h3><p>Todo palpite vem com quantas vezes acertou no passado, ao lado de uma moeda (50%).</p></div>
+          <div class="cartao surgir"><div class="icone">📰</div><h3>Notícias reunidas</h3><p>Manchetes dos últimos 7 dias de cada ativo, filtráveis, sem precisar procurar.</p></div>
+          <div class="cartao surgir"><div class="icone">🎲</div><h3>Simulador de gale</h3><p>Simula centenas de pessoas usando martingale e mostra a conta exata de cada rodada.</p></div>
+          <div class="cartao surgir"><div class="icone">🔐</div><h3>Contas e planos</h3><p>Cadastro, plano grátis limitado, assinatura, contas cortesia e funções exclusivas do dono.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco">
+      <div class="largura">
+        <h2>Os números que os grupos de sinais não mostram</h2>
+        <p class="intro">Testado com dados reais. É por isso que o Magnobag mostra análise, e não "compre agora".</p>
+        <div class="numeros">
+          <div class="numero surgir"><strong>49%</strong><span>de acerto da regra "tendência de alta, amanhã sobe" na PETR4 (≈ cara ou coroa)</span></div>
+          <div class="numero surgir"><strong class="positivo">87,5%</strong><span>de "acerto" que um grupo de gale divulga contando os gales</span></div>
+          <div class="numero surgir"><strong class="negativo">98,8%</strong><span>das pessoas simuladas quebram a banca em 90 dias com esse mesmo bot</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco">
+      <div class="largura">
+        <h2>Como foi feito</h2>
+        <p class="intro">Back-end em Python, front-end sem framework, com foco em segurança e microinterações.</p>
+        <div class="chips">
+          <span class="chip">Python</span><span class="chip">Flask</span><span class="chip">SQLite</span><span class="chip">pandas</span>
+          <span class="chip">yfinance</span><span class="chip">Chart.js</span><span class="chip">JavaScript puro</span><span class="chip">CSS (design system próprio)</span>
+          <span class="chip">Proteção CSRF</span><span class="chip">Limite de login</span><span class="chip">Senhas com hash</span><span class="chip">Waitress</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco" id="rodar">
+      <div class="largura">
+        <h2>Rodar no seu computador</h2>
+        <p class="intro">Precisa de Python 3 instalado.</p>
+<pre><span class="c"># baixar o projeto</span>
+git clone https://github.com/JoseFrancisco-alt/magnobag.git
+cd magnobag
+
+<span class="c"># instalar as dependências e ligar o site</span>
+pip install -r site/requirements.txt
+python site/app.py
+
+<span class="c"># abrir http://localhost:5000 e criar uma conta</span></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="largura">
+      Magnobag · Projeto de estudo de <a href="https://github.com/JoseFrancisco-alt">@JoseFrancisco-alt</a> · Ferramenta de análise de dados, não é recomendação de investimento.
+      Resultados passados não garantem resultados futuros.
+    </div>
+  </footer>
+
+  <script>
+    const surgir = document.querySelectorAll(".surgir");
+    if ("IntersectionObserver" in window) {
+      const obs = new IntersectionObserver((entradas) => entradas.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add("visivel"); obs.unobserve(e.target); }
+      }), { threshold: 0.1 });
+      surgir.forEach((el) => obs.observe(el));
+    } else {
+      surgir.forEach((el) => el.classList.add("visivel"));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Magnobag{% endblock %}</title>
+  <meta name="description" content="Magnobag: gráficos, indicadores, backtests e notícias de ações da B3 e criptomoedas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="{{ 'com-menu' if session.usuario_id else 'sem-menu' }}">
+  <div class="brilho" aria-hidden="true"></div>
+
+  {% set icone_marca %}{% include "_logo.html" %}<span class="marca-texto"><b>magno<span>bag</span></b><small>Análise de mercado</small></span>{% endset %}
+  {% if session.nome %}{% set partes = session.nome.split() %}{% set nome_curto = (partes[0] ~ (' ' ~ partes[-1] if partes|length > 1 else ''))|title %}{% endif %}
+
+  {% if session.usuario_id %}
+  <aside class="lateral">
+    <a href="{{ url_for('painel') }}" class="marca" aria-label="Magnobag, ir para o painel">{{ icone_marca }}</a>
+    <nav class="menu" aria-label="Principal">
+      <span class="menu-titulo">Menu</span>
+      <a href="{{ url_for('painel') }}" class="{{ 'atual' if request.endpoint in ('painel', 'ativo') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Painel</a>
+      <a href="{{ url_for('pagina_noticias') }}" class="{{ 'atual' if request.endpoint == 'pagina_noticias' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/></svg>
+        Notícias</a>
+      <a href="{{ url_for('simulador') }}" class="{{ 'atual' if request.endpoint == 'simulador' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/></svg>
+        Simulador{% if not tem_acesso %}<span class="cadeado-menu">🔒</span>{% endif %}</a>
+    </nav>
+    <div class="conta">
+      {% if conta_gratis %}<span class="selo">★ Acesso total</span>
+      {% elif tem_acesso %}<span class="selo">★ Assinante</span>
+      {% else %}<a href="{{ url_for('plano') }}" class="botao-assinar">Assinar · {{ preco }}</a>{% endif %}
+      <div class="conta-linha">
+        <span class="avatar">{{ session.nome[:1]|upper }}</span>
+        <span class="conta-nome" title="{{ session.nome }}">{{ nome_curto }}</span>
+      </div>
+      <a href="{{ url_for('sair') }}" class="sair">Sair da conta</a>
+    </div>
+  </aside>
+  {% else %}
+  <header class="topo-simples">
+    <a href="{{ url_for('inicio') }}" class="marca" aria-label="Magnobag">{{ icone_marca }}</a>
+  </header>
+  {% endif %}
+
+  <div class="pagina">
+    <main>
+      {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% for categoria, mensagem in mensagens %}
+        <div class="aviso {{ categoria }}">{{ mensagem }}</div>
+        {% endfor %}
+      {% endwith %}
+      {% block conteudo %}{% endblock %}
+    </main>
+
+    <footer class="rodape">
+      Magnobag · Ferramenta de estudo e análise de dados. Não é recomendação de investimento.
+      Resultados passados não garantem resultados futuros.
+    </footer>
+  </div>
+  {% if eh_dono %}{% include "_mascote.html" %}{% endif %}
+  <script src="{{ url_for('static', filename='ui.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

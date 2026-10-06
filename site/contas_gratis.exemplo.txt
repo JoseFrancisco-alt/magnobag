@@ -1,0 +1,3 @@
+# Copie este arquivo para contas_gratis.txt e coloque os e-mails que entram sem pagar.
+# Um e-mail por linha, exatamente como foi usado no cadastro. Linhas com # são ignoradas.
+# exemplo@email.com

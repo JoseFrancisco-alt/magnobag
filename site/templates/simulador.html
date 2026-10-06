@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Simulador de gale · Magnobag{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-ativo">
+  <div>
+    <h1>Simulador de gale</h1>
+    <p class="sutil">O que acontece com quem segue um bot de sinais com martingale? Ajuste e rode.</p>
+  </div>
+</div>
+
+<form id="formSimulador" class="painel-bloco grade-campos">
+  <label>Banca inicial (R$) <input type="number" name="banca" value="500" min="10" max="1000000" step="10"></label>
+  <label>Aposta inicial (R$) <input type="number" name="aposta" value="10" min="1" max="100000"></label>
+  <label>Nº de gales <input type="number" name="gales" value="2" min="0" max="6"></label>
+  <label>Multiplicador do gale <input type="number" name="mult" value="2.2" min="1" max="5" step="0.1"></label>
+  <label>Payout da corretora (%) <input type="number" name="payout" value="87" min="50" max="100"></label>
+  <label>Acerto real do sinal (%) <input type="number" name="acerto" value="50" min="1" max="99"></label>
+  <label>Rodadas por dia <input type="number" name="rodadas" value="10" min="1" max="100"></label>
+  <label>Dias <input type="number" name="dias" value="90" min="1" max="365"></label>
+  <label>Pessoas simuladas <input type="number" name="pessoas" value="500" min="10" max="2000"></label>
+  <button type="submit">Simular</button>
+</form>
+
+<div class="numeros" id="numeros"></div>
+
+<section class="painel-bloco">
+  <h2>Como a banca evolui ao longo do tempo</h2>
+  <ul class="legenda">
+    <li><i class="leg-linha"></i>Pessoa típica (metade terminou acima, metade abaixo)</li>
+    <li><i class="leg-faixa"></i>Onde ficaram 80% das pessoas</li>
+    <li><i class="leg-exemplo"></i>8 exemplos (a linha some quando a pessoa quebra)</li>
+    <li><i class="leg-tracejado"></i>Banca inicial</li>
+  </ul>
+  <div class="grafico alto"><canvas id="graficoBancas"></canvas></div>
+</section>
+
+<section class="painel-bloco destaque">
+  <h2>A conta de cada rodada</h2>
+  <div id="contaRodada"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='simulador.js') }}"></script>
+{% endblock %}
