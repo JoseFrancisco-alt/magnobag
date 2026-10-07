@@ -2,6 +2,8 @@
 
 Nada aqui é recomendação: o módulo só mede o que teria acontecido no passado.
 """
+import os
+import tempfile
 import time
 
 import pandas as pd
@@ -32,6 +34,9 @@ CATALOGO = {
 NOMES = {ticker: nome for grupo in CATALOGO.values() for ticker, nome in grupo.items()}
 
 _cache = {}
+
+if os.environ.get("VERCEL"):
+    yf.set_tz_cache_location(os.path.join(tempfile.gettempdir(), "yfinance"))
 
 
 def moeda_do_ticker(ticker):

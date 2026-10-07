@@ -29,11 +29,18 @@ GRATIS_MAX_ATIVOS = 2
 GRATIS_DIAS_GRAFICO = 180
 GRATIS_MAX_NOTICIAS = 3
 
+# Na Vercel (ou outra nuvem) o banco é PostgreSQL (Supabase); no computador, SQLite.
+DATABASE_URL = os.environ.get("DATABASE_URL")
+NA_VERCEL = bool(os.environ.get("VERCEL"))
+
+
 def chave_secreta():
     """SECRET_KEY do ambiente ou, se não houver, uma chave aleatória salva em arquivo
     (assim ninguém é deslogado quando o servidor reinicia)."""
     if os.environ.get("SECRET_KEY"):
         return os.environ["SECRET_KEY"]
+    if NA_VERCEL:
+        raise RuntimeError("Defina SECRET_KEY nas variáveis de ambiente da Vercel.")
     arquivo = os.path.join(PASTA, ".secret_key")
     if not os.path.exists(arquivo):
         with open(arquivo, "w") as f:
@@ -104,10 +111,54 @@ def registrar_falha(*chaves):
 
 # ---------- banco de dados ----------
 
+class BancoPostgres:
+    """Deixa o PostgreSQL com a mesma cara do sqlite3 que o resto do código usa."""
+
+    def __init__(self, url):
+        import psycopg
+        from psycopg.rows import dict_row
+        # prepare_threshold=None: o "pooler" do Supabase não aceita comandos preparados
+        self.conexao = psycopg.connect(url, row_factory=dict_row, prepare_threshold=None)
+
+    @staticmethod
+    def _traduzir(sql):
+        sql = sql.replace("?", "%s").replace("ORDER BY rowid", "ORDER BY criado_em")
+        if sql.startswith("INSERT OR IGNORE"):
+            sql = sql.replace("INSERT OR IGNORE", "INSERT", 1) + " ON CONFLICT DO NOTHING"
+        return sql
+
+    def execute(self, sql, parametros=()):
+        return self.conexao.execute(self._traduzir(sql), parametros)
+
+    def executemany(self, sql, lista):
+        with self.conexao.cursor() as cursor:
+            cursor.executemany(self._traduzir(sql), lista)
+
+    def commit(self):
+        self.conexao.commit()
+
+    def rollback(self):
+        self.conexao.rollback()
+
+    def close(self):
+        self.conexao.close()
+
+
+def _erros_duplicado():
+    erros = [sqlite3.IntegrityError]
+    if DATABASE_URL:
+        import psycopg
+        erros.append(psycopg.errors.UniqueViolation)
+    return tuple(erros)
+
+
 def banco():
     if "db" not in g:
-        g.db = sqlite3.connect(BANCO)
-        g.db.row_factory = sqlite3.Row
+        if DATABASE_URL:
+            g.db = BancoPostgres(DATABASE_URL)
+        else:
+            g.db = sqlite3.connect(BANCO)
+            g.db.row_factory = sqlite3.Row
     return g.db
 
 
@@ -119,6 +170,8 @@ def fechar_banco(_erro):
 
 
 def criar_tabelas():
+    if DATABASE_URL:
+        return  # no PostgreSQL as tabelas são criadas pela migração (supabase/schema.sql)
     with sqlite3.connect(BANCO) as db:
         db.executescript("""
             CREATE TABLE IF NOT EXISTS usuarios (
@@ -160,8 +213,13 @@ def ler_emails(caminho):
         return set()
 
 
+def emails_do_ambiente(nome):
+    """Na nuvem, as listas vêm de variáveis de ambiente (e-mails separados por vírgula)."""
+    return {e.strip().lower() for e in os.environ.get(nome, "").split(",") if e.strip()}
+
+
 def contas_gratis():
-    return ler_emails(ARQUIVO_CONTAS_GRATIS)
+    return ler_emails(ARQUIVO_CONTAS_GRATIS) | emails_do_ambiente("CONTAS_GRATIS")
 
 
 def eh_dono():
@@ -169,7 +227,7 @@ def eh_dono():
     if "usuario_id" not in session:
         return False
     linha = banco().execute("SELECT email FROM usuarios WHERE id = ?", (session["usuario_id"],)).fetchone()
-    return bool(linha) and linha["email"] in ler_emails(ARQUIVO_CONTAS_DONO)
+    return bool(linha) and linha["email"] in (ler_emails(ARQUIVO_CONTAS_DONO) | emails_do_ambiente("CONTAS_DONO"))
 
 
 def situacao_conta():
@@ -239,17 +297,18 @@ def cadastro():
         else:
             db = banco()
             try:
-                cursor = db.execute(
-                    "INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)",
-                    (nome, email, generate_password_hash(senha)))
-            except sqlite3.IntegrityError:
+                novo_id = db.execute(
+                    "INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?) RETURNING id",
+                    (nome, email, generate_password_hash(senha))).fetchone()["id"]
+            except _erros_duplicado():
+                db.rollback()
                 flash("Esse e-mail já tem cadastro.", "erro")
             else:
                 db.executemany("INSERT INTO favoritos (usuario_id, ticker) VALUES (?, ?)",
-                               [(cursor.lastrowid, t) for t in FAVORITOS_INICIAIS])
+                               [(novo_id, t) for t in FAVORITOS_INICIAIS])
                 db.commit()
                 session.clear()
-                session["usuario_id"] = cursor.lastrowid
+                session["usuario_id"] = novo_id
                 session["nome"] = nome
                 return redirect(url_for("painel"))
     return render_template("cadastro.html")

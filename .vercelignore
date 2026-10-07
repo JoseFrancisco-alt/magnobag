@@ -1,0 +1,12 @@
+docs
+bot.py
+bot_diario.py
+grafico.png
+site/tools
+site/radar.db
+site/.secret_key
+site/contas_gratis.txt
+site/contas_dono.txt
+site/static/mascote.png
+site/static/mascote.gif
+site/static/mascote.webp
