@@ -80,7 +80,21 @@ Elas aparecem na aba **Notícias** (todos os seus ativos juntos, com filtro) e n
 - Cabeçalhos de segurança (anti-iframe, anti-sniffing, HSTS quando `HTTPS=1`).
 - Limites do plano grátis e funções do dono checados no servidor, não só na tela.
 
-## Colocar no ar
+## No ar (Vercel + Supabase)
+
+**Site:** https://magnobag.vercel.app (plano Hobby da Vercel, região São Paulo).
+Cada `git push` na branch `main` publica sozinho.
+
+- Banco: Supabase, organização/projeto **magnobag** (São Paulo, Data API desligada). Tabelas em
+  `supabase/schema.sql`, com RLS ligado e sem políticas de propósito (a API pública não lê nada;
+  só o site, com a senha do banco, acessa).
+- Variáveis na Vercel: `DATABASE_URL`, `SECRET_KEY`, `HTTPS=1`, `CONTAS_DONO` (e `CONTAS_GRATIS`, se quiser).
+- **Trocou a senha do banco?** Cada "Reset password" no Supabase invalida a anterior. Rode
+  `python site/tools/testar_banco.py` (lê a senha copiada, testa e já copia o `DATABASE_URL` pronto),
+  cole na Vercel e faça um novo deploy.
+- Plano Hobby é só para uso não comercial: ao começar a cobrar assinaturas, passe para o Pro.
+
+## Colocar no ar (outra hospedagem)
 
 Desenvolvimento (no seu computador): `python site/app.py`.
 No ar: `python site/servidor.py` (servidor waitress, **sem** modo debug). Precisa das variáveis:
