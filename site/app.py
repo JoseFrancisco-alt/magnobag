@@ -190,6 +190,8 @@ def criar_tabelas():
         colunas = [linha[1] for linha in db.execute("PRAGMA table_info(usuarios)")]
         if "premium" not in colunas:  # bancos criados antes do plano pago
             db.execute("ALTER TABLE usuarios ADD COLUMN premium INTEGER NOT NULL DEFAULT 0")
+        if "vitalicio" not in colunas:  # acesso grátis para sempre, liberado pelo dono
+            db.execute("ALTER TABLE usuarios ADD COLUMN vitalicio INTEGER NOT NULL DEFAULT 0")
         if "nome" not in [linha[1] for linha in db.execute("PRAGMA table_info(favoritos)")]:
             db.execute("ALTER TABLE favoritos ADD COLUMN nome TEXT")  # nome amigável vindo da busca
 
@@ -241,11 +243,12 @@ def situacao_conta():
     """Devolve (assinante, conta_gratis) do usuário logado. Quem não é assinante usa o plano grátis."""
     if "usuario_id" not in session:
         return False, False
-    linha = banco().execute("SELECT email, premium FROM usuarios WHERE id = ?",
+    linha = banco().execute("SELECT email, premium, vitalicio FROM usuarios WHERE id = ?",
                             (session["usuario_id"],)).fetchone()
     if linha is None:
         return False, False
-    gratis = linha["email"] in contas_gratis()
+    # acesso vitalício: lista de contas grátis (arquivo/variável) ou marcado no banco (coluna vitalicio)
+    gratis = linha["email"] in contas_gratis() or bool(linha["vitalicio"])
     return gratis or bool(linha["premium"]), gratis
 
 

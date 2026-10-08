@@ -30,3 +30,7 @@ alter table public.arquivos enable row level security;
 
 -- nome amigável do ativo, guardado quando ele é adicionado pela busca
 alter table public.favoritos add column if not exists nome text;
+
+-- acesso grátis para sempre, liberado pelo dono:
+--   update public.usuarios set vitalicio = 1 where email = 'pessoa@email.com';
+alter table public.usuarios add column if not exists vitalicio integer not null default 0;
