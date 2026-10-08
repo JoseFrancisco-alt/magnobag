@@ -19,3 +19,11 @@ create table if not exists public.favoritos (
 
 alter table public.usuarios enable row level security;
 alter table public.favoritos enable row level security;
+
+-- arquivos privados do site (ex.: imagem do mascote do dono), entregues só pelo próprio site
+create table if not exists public.arquivos (
+  nome text primary key,
+  tipo text not null,
+  dados bytea not null
+);
+alter table public.arquivos enable row level security;

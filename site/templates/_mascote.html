@@ -10,8 +10,8 @@
   <button type="button" class="mascote-corpo" id="mascoteCorpo" aria-label="Mimikyu, seu mascote. Clique para ver os avisos">
     <span class="mascote-bolinha" id="mascoteBolinha" hidden></span>
     {% if imagem_mascote %}
-    <!-- imagem própria do dono (static/mascote.png, .gif ou .webp) -->
-    <img class="mascote-imagem" src="{{ url_for('static', filename=imagem_mascote) }}" alt="">
+    <!-- imagem própria do dono (static/mascote.png no computador, ou guardada no banco no ar) -->
+    <img class="mascote-imagem" src="{{ imagem_mascote }}" alt="">
     <span class="mascote-humor" id="mascoteHumor" aria-hidden="true"></span>
     {% else %}
     <!-- pixel art desenhada pelo mascote.js -->

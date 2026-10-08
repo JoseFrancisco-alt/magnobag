@@ -218,8 +218,13 @@ def emails_do_ambiente(nome):
     return {e.strip().lower() for e in os.environ.get(nome, "").split(",") if e.strip()}
 
 
+def contas_donos():
+    return ler_emails(ARQUIVO_CONTAS_DONO) | emails_do_ambiente("CONTAS_DONO")
+
+
 def contas_gratis():
-    return ler_emails(ARQUIVO_CONTAS_GRATIS) | emails_do_ambiente("CONTAS_GRATIS")
+    # o dono sempre tem acesso total, sem precisar estar também na lista de contas grátis
+    return ler_emails(ARQUIVO_CONTAS_GRATIS) | emails_do_ambiente("CONTAS_GRATIS") | contas_donos()
 
 
 def eh_dono():
@@ -227,7 +232,7 @@ def eh_dono():
     if "usuario_id" not in session:
         return False
     linha = banco().execute("SELECT email FROM usuarios WHERE id = ?", (session["usuario_id"],)).fetchone()
-    return bool(linha) and linha["email"] in (ler_emails(ARQUIVO_CONTAS_DONO) | emails_do_ambiente("CONTAS_DONO"))
+    return bool(linha) and linha["email"] in contas_donos()
 
 
 def situacao_conta():
@@ -254,11 +259,25 @@ def assinatura_obrigatoria(rota):
     return protegida
 
 
+def endereco_imagem_mascote():
+    """Imagem própria do mascote: arquivo em static/ (no computador) ou guardada no banco (no ar)."""
+    arquivo = next((n for n in IMAGENS_MASCOTE if os.path.exists(os.path.join(PASTA, "static", n))), None)
+    if arquivo:
+        return url_for("static", filename=arquivo)
+    if DATABASE_URL:
+        try:
+            if banco().execute("SELECT 1 FROM arquivos WHERE nome = 'mascote'").fetchone():
+                return url_for("imagem_mascote")
+        except Exception:
+            banco().rollback()  # tabela ainda não existe: segue com o desenho em pixel art
+    return None
+
+
 @app.context_processor
 def variaveis_globais():
     acesso, gratis = situacao_conta()
     dono = eh_dono()
-    imagem = next((n for n in IMAGENS_MASCOTE if os.path.exists(os.path.join(PASTA, "static", n))), None) if dono else None
+    imagem = endereco_imagem_mascote() if dono else None
     return {"tem_acesso": acesso, "conta_gratis": gratis, "preco": PRECO_ASSINATURA, "eh_dono": dono,
             "imagem_mascote": imagem,
             "gratis_max_ativos": GRATIS_MAX_ATIVOS, "gratis_max_noticias": GRATIS_MAX_NOTICIAS}
@@ -480,6 +499,20 @@ def api_noticias(ticker):
 
 
 # ---------- mascote (só para o dono) ----------
+
+@app.route("/mascote-imagem")
+@login_obrigatorio
+def imagem_mascote():
+    """Entrega a imagem do mascote guardada no banco, e só para o dono (ela não fica pública)."""
+    if not eh_dono() or not DATABASE_URL:  # no computador a imagem vem de static/, não do banco
+        abort(404)
+    linha = banco().execute("SELECT tipo, dados FROM arquivos WHERE nome = 'mascote'").fetchone()
+    if not linha:
+        abort(404)
+    resposta = app.response_class(bytes(linha["dados"]), mimetype=linha["tipo"])
+    resposta.headers["Cache-Control"] = "private, max-age=86400"
+    return resposta
+
 
 def _pct(valor):
     return f"{abs(valor) * 100:.1f}".replace(".", ",") + "%"
