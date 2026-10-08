@@ -6,6 +6,7 @@ import os
 import re
 import tempfile
 import time
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 import yfinance as yf
@@ -103,6 +104,9 @@ def buscar_ativos(texto, limite=8):
     _cache_busca[chave] = (agora, resultado)
     return resultado
 
+
+# horário de Brasília (o servidor da Vercel roda em UTC; o Brasil não tem mais horário de verão)
+BRASILIA = timezone(timedelta(hours=-3))
 
 # De quanto em quanto tempo os dados são buscados de novo, por plano
 TEMPO_ATUALIZACAO = {"gratis": 60 * 60, "assinante": 2 * 60}
@@ -218,7 +222,7 @@ def calcular(ticker, plano="assinante"):
             "cruzou_hoje": (None if tendencia_alta.iloc[-1] == tendencia_alta.iloc[-2]
                             else ("alta" if tendencia_alta.iloc[-1] else "baixa")),
         },
-        "atualizado_em": time.strftime("%H:%M", time.localtime(buscado_em)),
+        "atualizado_em": datetime.fromtimestamp(buscado_em, BRASILIA).strftime("%H:%M"),
         "proxima_atualizacao_min": round(TEMPO_ATUALIZACAO[plano] / 60),
         "serie": {
             "datas": [d.strftime("%Y-%m-%d") for d in df.index],
