@@ -13,7 +13,7 @@
 </div>
 <ul class="lista-noticias painel-bloco" id="listaNoticias"></ul>
 {% if not tem_acesso %}
-<p class="sutil">Plano grátis: {{ gratis_max_noticias }} notícias mais recentes por ativo.
+<p class="sutil">Plano grátis: {{ gratis_max_noticias }} notícias mais recentes por ativo, atualizadas a cada {{ tempo_noticias.gratis // 60 }} horas.
   <a href="{{ url_for('plano') }}">Assine por {{ preco }}</a> para ver todas.</p>
 {% endif %}
 {% else %}

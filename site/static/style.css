@@ -297,6 +297,10 @@ label input { margin-top: .35rem; }
 .busca-info { padding: .7rem; color: var(--texto-sutil); font-size: .9rem; }
 
 /* ---------- página do ativo ---------- */
+.cabecalho-bloco { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.cabecalho-bloco h2 { margin: .1rem 0; }
+.alternar { display: inline-flex; gap: .3rem; padding: .25rem; border: 1px solid var(--borda); border-radius: 999px; background: var(--fundo-2); }
+.alternar .chip { border-color: transparent; padding: .35rem .9rem; }
 .cabecalho-ativo { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: .6rem; }
 .cabecalho-ativo h1 { font-size: clamp(2.2rem, 4.5vw, 3.4rem); }
 .cabecalho-ativo h1 .sutil { font: 400 1rem var(--fonte-texto); margin-left: .4rem; letter-spacing: 0; }

@@ -32,13 +32,93 @@ function numero(titulo, valor, classe = "") {
   return `<div class="numero"><span class="sutil">${titulo}</span><strong class="${classe}">${valor}</strong></div>`;
 }
 
+// ---------- gráfico de preço: linha (período todo) ou velas (últimos 3 meses) ----------
+const VELAS_DIAS = 63;  // ~3 meses de pregão
+let graficoPreco = null;
+
+function lerModoGrafico() {
+  try { return localStorage.getItem("magnobag-grafico") === "velas" ? "velas" : "linha"; } catch { return "linha"; }
+}
+function salvarModoGrafico(modo) {
+  try { localStorage.setItem("magnobag-grafico", modo); } catch { /* modo privado */ }
+}
+
+function desenharPreco(d, datas, modo) {
+  document.querySelectorAll("[data-modo-grafico]").forEach((b) => {
+    b.classList.toggle("ativo", b.dataset.modoGrafico === modo);
+    b.setAttribute("aria-pressed", b.dataset.modoGrafico === modo);
+  });
+  document.getElementById("notaGrafico").textContent = modo === "velas"
+    ? "Cada vela é um dia: verde fechou acima da abertura, vermelha abaixo. O pavio fino vai da mínima à máxima. Últimos 3 meses."
+    : "Quando a média de 20 dias está acima da de 50, o preço vem subindo nas últimas semanas (tendência de alta).";
+  if (graficoPreco) graficoPreco.destroy();
+  const canvas = document.getElementById("graficoPreco");
+
+  if (modo === "linha") {
+    graficoPreco = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: datas,
+        datasets: [
+          linha("Preço", d.serie.preco, cor("--texto")),
+          linha("Média 20 dias", d.serie.media_curta, CORES[0]),
+          linha("Média 50 dias", d.serie.media_longa, CORES[1]),
+        ],
+      },
+      options: opcoesBase(),
+    });
+    return;
+  }
+
+  // velas: barras "flutuantes" do Chart.js, uma fina (pavio: mínima→máxima) e uma grossa (corpo: abertura→fechamento)
+  const ini = Math.max(0, datas.length - VELAS_DIAS);
+  const corte = (lista) => lista.slice(ini);
+  const ab = corte(d.serie.abertura), fe = corte(d.serie.preco), mi = corte(d.serie.minima), ma = corte(d.serie.maxima);
+  const coresVela = fe.map((f, i) => (f >= ab[i] ? cor("--positivo") : cor("--negativo")));
+  graficoPreco = new Chart(canvas, {
+    data: {
+      labels: corte(datas),
+      datasets: [
+        { type: "bar", label: "Pavio", data: mi.map((m, i) => [m, ma[i]]), backgroundColor: coresVela,
+          barPercentage: 0.12, categoryPercentage: 1, grouped: false, order: 2 },
+        { type: "bar", label: "Vela", data: ab.map((a, i) => (a === fe[i] ? [a, a * 1.0005] : [a, fe[i]])),
+          backgroundColor: coresVela, barPercentage: 0.7, categoryPercentage: 1, grouped: false, order: 1 },
+        { type: "line", ...linha("Média 20 dias", corte(d.serie.media_curta), CORES[0]), order: 0 },
+        { type: "line", ...linha("Média 50 dias", corte(d.serie.media_longa), CORES[1]), order: 0 },
+      ],
+    },
+    options: opcoesBase({
+      scales: {
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0 } },
+        // barras começam no zero por padrão: aqui o eixo acompanha só a faixa de preço do período
+        y: { beginAtZero: false, suggestedMin: Math.min(...mi) * 0.98, suggestedMax: Math.max(...ma) * 1.02,
+             ticks: { callback: (v) => moeda.format(v) } },
+      },
+      plugins: {
+        legend: { labels: { boxWidth: 12, filter: (item) => item.text !== "Pavio" } },
+        tooltip: {
+          filter: (item) => item.dataset.label !== "Pavio",
+          callbacks: {
+            label: (c) => {
+              if (c.dataset.label !== "Vela") return `${c.dataset.label}: ${moeda.format(c.parsed.y)}`;
+              const i = c.dataIndex;
+              return [`Abertura: ${moeda.format(ab[i])}`, `Máxima: ${moeda.format(ma[i])}`,
+                      `Mínima: ${moeda.format(mi[i])}`, `Fechamento: ${moeda.format(fe[i])}`];
+            },
+          },
+        },
+      },
+    }),
+  });
+}
+
 function desenhar(d) {
   const r = d.resumo;
   moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: d.moeda });
   const datas = d.serie.datas.map((s) => s.split("-").reverse().join("/"));
 
   document.getElementById("numeros").innerHTML = [
-    numero(`Fechamento ${r.data}`, moeda.format(r.preco)),
+    numero(`Preço · atualizado ${d.atualizado_em}`, moeda.format(r.preco)),
     numero("No dia", pct.format(r.variacao_dia), r.variacao_dia >= 0 ? "positivo" : "negativo"),
     numero("Em 30 dias", pct.format(r.variacao_30d), r.variacao_30d >= 0 ? "positivo" : "negativo"),
     numero("Faixa de 1 ano", `${moeda.format(r.minima_1a)} – ${moeda.format(r.maxima_1a)}`),
@@ -46,17 +126,12 @@ function desenhar(d) {
     numero("RSI", r.rsi.toFixed(0)),
   ].join("");
 
-  new Chart(document.getElementById("graficoPreco"), {
-    type: "line",
-    data: {
-      labels: datas,
-      datasets: [
-        linha("Preço", d.serie.preco, cor("--texto")),
-        linha("Média 20 dias", d.serie.media_curta, CORES[0]),
-        linha("Média 50 dias", d.serie.media_longa, CORES[1]),
-      ],
-    },
-    options: opcoesBase(),
+  desenharPreco(d, datas, lerModoGrafico());
+  document.querySelectorAll("[data-modo-grafico]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      salvarModoGrafico(botao.dataset.modoGrafico);
+      desenharPreco(d, datas, botao.dataset.modoGrafico);
+    });
   });
 
   if (d.limitado) return; // plano grátis: o resto da página fica bloqueado

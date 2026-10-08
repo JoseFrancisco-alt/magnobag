@@ -7,7 +7,8 @@ import requests
 
 import analise
 
-CACHE_SEGUNDOS = 15 * 60
+# De quanto em quanto tempo as manchetes são buscadas de novo, por plano
+TEMPO_ATUALIZACAO = {"gratis": 3 * 60 * 60, "assinante": 15 * 60}
 MAX_NOTICIAS = 20
 _cache = {}
 
@@ -20,10 +21,11 @@ def termo_de_busca(ticker):
     return nome or codigo  # cripto: "Bitcoin" acha mais notícia que "BTC"
 
 
-def buscar(ticker):
+def buscar(ticker, plano="assinante"):
     agora = time.time()
-    if ticker in _cache and agora - _cache[ticker][0] < CACHE_SEGUNDOS:
-        return _cache[ticker][1]
+    chave = (ticker, plano)
+    if chave in _cache and agora - _cache[chave][0] < TEMPO_ATUALIZACAO[plano]:
+        return _cache[chave][1]
 
     resposta = requests.get(
         "https://news.google.com/rss/search",
@@ -56,5 +58,5 @@ def buscar(ticker):
 
     noticias.sort(key=lambda n: n["data"], reverse=True)
     noticias = noticias[:MAX_NOTICIAS]
-    _cache[ticker] = (agora, noticias)
+    _cache[chave] = (agora, noticias)
     return noticias

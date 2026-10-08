@@ -5,7 +5,8 @@
 <div class="faixa-gratis blur-reveal">
   <div>
     <strong>Você está no plano grátis.</strong>
-    <span class="sutil">Até {{ gratis_max_ativos }} ativos, gráfico dos últimos 6 meses e {{ gratis_max_noticias }} notícias por ativo.</span>
+    <span class="sutil">Até {{ gratis_max_ativos }} ativos, gráfico dos últimos 6 meses, {{ gratis_max_noticias }} notícias por ativo.
+      Preços atualizados a cada {{ tempo_mercado.gratis // 60 }} hora e notícias a cada {{ tempo_noticias.gratis // 60 }} horas.</span>
   </div>
   <a href="{{ url_for('plano') }}" class="botao-assinar">Liberar tudo por {{ preco }}</a>
 </div>
@@ -123,7 +124,7 @@
       if (!r.ok) throw new Error(d.erro);
       const subiu = d.variacao_dia >= 0;
       preco.innerHTML = `${new Intl.NumberFormat("pt-BR", { style: "currency", currency: d.moeda }).format(d.preco)} <span class="${subiu ? "positivo" : "negativo"}">${pct.format(d.variacao_dia)}</span>`;
-      detalhes.textContent = `Tendência de ${d.tendencia} · RSI ${d.rsi.toFixed(0)} · ${d.data}`;
+      detalhes.textContent = `Tendência de ${d.tendencia} · RSI ${d.rsi.toFixed(0)} · atualizado ${d.atualizado_em}`;
       const ultimos = d.ultimos_30 || [];
       faisca(cartao.querySelector(".faisca"), ultimos, ultimos.at(-1) >= ultimos[0]);
       return [cartao.dataset.ticker, d];

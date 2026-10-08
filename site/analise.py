@@ -104,16 +104,27 @@ def buscar_ativos(texto, limite=8):
     return resultado
 
 
-def baixar(ticker):
+# De quanto em quanto tempo os dados são buscados de novo, por plano
+TEMPO_ATUALIZACAO = {"gratis": 60 * 60, "assinante": 2 * 60}
+
+
+def baixar(ticker, plano="assinante"):
+    """Preços diários de 5 anos (abertura, máxima, mínima e fechamento) e a hora em que foram buscados.
+
+    Cada plano tem o próprio cache: no grátis os dados só são renovados de hora em hora.
+    """
     agora = time.time()
-    if ticker in _cache and agora - _cache[ticker][0] < CACHE_SEGUNDOS:
-        return _cache[ticker][1]
+    chave = (ticker, plano)
+    if chave in _cache and agora - _cache[chave][0] < TEMPO_ATUALIZACAO[plano]:
+        return _cache[chave][1]
     df = yf.download(ticker, period="5y", auto_adjust=True, progress=False)
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
     if not df.empty:
-        df = df[["Close"]].rename(columns={"Close": "preco"}).dropna()
-    _cache[ticker] = (agora, df)
+        df = df[["Open", "High", "Low", "Close"]].rename(columns={
+            "Open": "abertura", "High": "maxima", "Low": "minima", "Close": "preco"}).dropna()
+    df.attrs["buscado_em"] = agora
+    _cache[chave] = (agora, df)
     return df
 
 
@@ -151,9 +162,10 @@ def _leitura_rsi(rsi):
     return "entre 30 e 70: neutro"
 
 
-def calcular(ticker):
+def calcular(ticker, plano="assinante"):
     """Devolve o resumo, as séries para gráfico e os backtests, ou None se não houver dados."""
-    df = baixar(ticker)
+    df = baixar(ticker, plano)
+    buscado_em = df.attrs.get("buscado_em", time.time())
     if df.empty or len(df) < MEDIA_LONGA + 10:
         return None
     df = df.copy()
@@ -206,9 +218,14 @@ def calcular(ticker):
             "cruzou_hoje": (None if tendencia_alta.iloc[-1] == tendencia_alta.iloc[-2]
                             else ("alta" if tendencia_alta.iloc[-1] else "baixa")),
         },
+        "atualizado_em": time.strftime("%H:%M", time.localtime(buscado_em)),
+        "proxima_atualizacao_min": round(TEMPO_ATUALIZACAO[plano] / 60),
         "serie": {
             "datas": [d.strftime("%Y-%m-%d") for d in df.index],
             "preco": _lista(df["preco"]),
+            "abertura": _lista(df["abertura"]),
+            "maxima": _lista(df["maxima"]),
+            "minima": _lista(df["minima"]),
             "media_curta": _lista(df["media_curta"]),
             "media_longa": _lista(df["media_longa"]),
             "rsi": _lista(df["rsi"], 1),

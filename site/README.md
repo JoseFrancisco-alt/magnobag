@@ -39,7 +39,9 @@ Abra http://127.0.0.1:5000 e crie uma conta. Para contas grátis e de dono, copi
 
 | | Plano grátis (degustação) | Assinatura |
 |---|---|---|
-| Ativos acompanhados | até 2 | ilimitado |
+| Ativos acompanhados | até 3 | ilimitado |
+| Preços atualizados a cada | 1 hora | 2 minutos |
+| Notícias atualizadas a cada | 3 horas | 15 minutos |
 | Gráfico de preço | 6 meses | 5 anos |
 | Notícias por ativo | 3 | todas |
 | RSI, backtest e taxa de acerto | bloqueado | ✓ |

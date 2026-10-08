@@ -23,8 +23,14 @@
   <div class="numeros" id="numeros"></div>
 
   <section class="painel-bloco">
-    <h2>Preço e médias móveis {% if not tem_acesso %}<span class="sutil pequeno">(últimos 6 meses)</span>{% endif %}</h2>
-    <p class="sutil">Quando a média de 20 dias está acima da de 50, o preço vem subindo nas últimas semanas (tendência de alta).</p>
+    <div class="cabecalho-bloco">
+      <h2>Preço e médias móveis {% if not tem_acesso %}<span class="sutil pequeno">(últimos 6 meses)</span>{% endif %}</h2>
+      <div class="alternar" role="group" aria-label="Tipo de gráfico">
+        <button type="button" class="chip" data-modo-grafico="linha">Linha</button>
+        <button type="button" class="chip" data-modo-grafico="velas">Velas</button>
+      </div>
+    </div>
+    <p class="sutil" id="notaGrafico"></p>
     <div class="grafico alto"><canvas id="graficoPreco"></canvas></div>
   </section>
 

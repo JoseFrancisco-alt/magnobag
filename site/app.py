@@ -25,7 +25,7 @@ ARQUIVO_CONTAS_DONO = os.path.join(PASTA, "contas_dono.txt")
 IMAGENS_MASCOTE = ["mascote.gif", "mascote.png", "mascote.webp"]
 PRECO_ASSINATURA = "R$ 4,00/mês"
 # Plano grátis (degustação): poucos ativos, gráfico curto, poucas notícias, sem backtest nem simulador
-GRATIS_MAX_ATIVOS = 2
+GRATIS_MAX_ATIVOS = 3
 GRATIS_DIAS_GRAFICO = 180
 GRATIS_MAX_NOTICIAS = 3
 
@@ -285,7 +285,14 @@ def variaveis_globais():
     imagem = endereco_imagem_mascote() if dono else None
     return {"tem_acesso": acesso, "conta_gratis": gratis, "preco": PRECO_ASSINATURA, "eh_dono": dono,
             "imagem_mascote": imagem,
-            "gratis_max_ativos": GRATIS_MAX_ATIVOS, "gratis_max_noticias": GRATIS_MAX_NOTICIAS}
+            "gratis_max_ativos": GRATIS_MAX_ATIVOS, "gratis_max_noticias": GRATIS_MAX_NOTICIAS,
+            "tempo_mercado": {k: v // 60 for k, v in analise.TEMPO_ATUALIZACAO.items()},
+            "tempo_noticias": {k: v // 60 for k, v in noticias.TEMPO_ATUALIZACAO.items()}}
+
+
+def plano_atual():
+    """'assinante' (dados rápidos) para quem tem acesso total, 'gratis' (dados mais lentos) para o resto."""
+    return "assinante" if situacao_conta()[0] else "gratis"
 
 
 def favoritos_do_usuario():
@@ -475,7 +482,7 @@ def cancelar():
 @app.route("/api/analise/<ticker>")
 @login_obrigatorio
 def api_analise(ticker):
-    dados = analise.calcular(ticker_ou_404(ticker))
+    dados = analise.calcular(ticker_ou_404(ticker), plano_atual())
     if dados is None:
         return jsonify({"erro": "Sem dados para esse ativo."}), 404
     if not situacao_conta()[0]:
@@ -494,10 +501,11 @@ def versao_gratis(dados):
 @app.route("/api/resumo/<ticker>")
 @login_obrigatorio
 def api_resumo(ticker):
-    dados = analise.calcular(ticker_ou_404(ticker))
+    dados = analise.calcular(ticker_ou_404(ticker), plano_atual())
     if dados is None:
         return jsonify({"erro": "Sem dados para esse ativo."}), 404
-    return jsonify({"nome": dados["nome"], "moeda": dados["moeda"], **dados["resumo"]})
+    return jsonify({"nome": dados["nome"], "moeda": dados["moeda"], "atualizado_em": dados["atualizado_em"],
+                    **dados["resumo"]})
 
 
 @app.route("/api/buscar")
@@ -511,7 +519,7 @@ def api_buscar():
 @login_obrigatorio
 def api_noticias(ticker):
     try:
-        lista = noticias.buscar(ticker_ou_404(ticker))
+        lista = noticias.buscar(ticker_ou_404(ticker), plano_atual())
         return jsonify(lista if situacao_conta()[0] else lista[:GRATIS_MAX_NOTICIAS])
     except Exception:
         app.logger.exception("Falha ao buscar notícias de %s", ticker)
