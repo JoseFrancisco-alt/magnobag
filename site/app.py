@@ -190,6 +190,8 @@ def criar_tabelas():
         colunas = [linha[1] for linha in db.execute("PRAGMA table_info(usuarios)")]
         if "premium" not in colunas:  # bancos criados antes do plano pago
             db.execute("ALTER TABLE usuarios ADD COLUMN premium INTEGER NOT NULL DEFAULT 0")
+        if "nome" not in [linha[1] for linha in db.execute("PRAGMA table_info(favoritos)")]:
+            db.execute("ALTER TABLE favoritos ADD COLUMN nome TEXT")  # nome amigável vindo da busca
 
 
 # ---------- login ----------
@@ -362,17 +364,25 @@ def sair():
 
 # ---------- páginas ----------
 
+def nomes_dos_ativos():
+    """Nomes do catálogo + os nomes guardados quando o ativo foi adicionado pela busca."""
+    guardados = {linha["ticker"]: linha["nome"] for linha in banco().execute(
+        "SELECT ticker, nome FROM favoritos WHERE usuario_id = ? AND nome IS NOT NULL",
+        (session["usuario_id"],))}
+    return {**guardados, **analise.NOMES}
+
+
 @app.route("/painel")
 @login_obrigatorio
 def painel():
     return render_template("painel.html", favoritos=favoritos_do_usuario(),
-                           catalogo=analise.CATALOGO, nomes=analise.NOMES)
+                           catalogo=analise.CATALOGO, nomes=nomes_dos_ativos())
 
 
 @app.route("/noticias")
 @login_obrigatorio
 def pagina_noticias():
-    return render_template("noticias.html", favoritos=favoritos_do_usuario(), nomes=analise.NOMES)
+    return render_template("noticias.html", favoritos=favoritos_do_usuario(), nomes=nomes_dos_ativos())
 
 
 @app.route("/ativo/<ticker>")
@@ -398,8 +408,9 @@ def adicionar_favorito():
     elif analise.baixar(ticker).empty:
         flash(f"Não encontrei dados para {ticker}.", "erro")
     else:
-        banco().execute("INSERT OR IGNORE INTO favoritos (usuario_id, ticker) VALUES (?, ?)",
-                        (session["usuario_id"], ticker))
+        nome = request.form.get("nome", "").strip()[:60] or None
+        banco().execute("INSERT OR IGNORE INTO favoritos (usuario_id, ticker, nome) VALUES (?, ?, ?)",
+                        (session["usuario_id"], ticker, nome))
         banco().commit()
     return redirect(request.form.get("voltar") or url_for("painel"))
 
@@ -484,6 +495,13 @@ def api_resumo(ticker):
     if dados is None:
         return jsonify({"erro": "Sem dados para esse ativo."}), 404
     return jsonify({"nome": dados["nome"], "moeda": dados["moeda"], **dados["resumo"]})
+
+
+@app.route("/api/buscar")
+@login_obrigatorio
+def api_buscar():
+    """Sugestões para o campo de busca do painel (nome da empresa, moeda ou código)."""
+    return jsonify(analise.buscar_ativos(request.args.get("q", "")[:40]))
 
 
 @app.route("/api/noticias/<ticker>")

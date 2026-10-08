@@ -27,3 +27,6 @@ create table if not exists public.arquivos (
   dados bytea not null
 );
 alter table public.arquivos enable row level security;
+
+-- nome amigável do ativo, guardado quando ele é adicionado pela busca
+alter table public.favoritos add column if not exists nome text;

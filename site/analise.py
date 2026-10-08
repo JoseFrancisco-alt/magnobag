@@ -3,6 +3,7 @@
 Nada aqui é recomendação: o módulo só mede o que teria acontecido no passado.
 """
 import os
+import re
 import tempfile
 import time
 
@@ -40,8 +41,67 @@ if os.environ.get("VERCEL"):
 
 
 def moeda_do_ticker(ticker):
-    """Ações da B3 (.SA) e câmbio em reais; o resto (cripto, ações dos EUA) em dólar."""
-    return "BRL" if ticker.endswith(".SA") or ticker.endswith("BRL=X") else "USD"
+    """Ações da B3 (.SA), câmbio para real e Ibovespa em reais; o resto (cripto, EUA) em dólar."""
+    return "BRL" if ticker.endswith(".SA") or ticker.endswith("BRL=X") or ticker == "BRL=X" or ticker == "^BVSP" else "USD"
+
+
+# ---------- busca de ativos pelo nome ----------
+
+# nomes que a busca do Yahoo não entende bem em português
+ATALHOS = {
+    "dolar": [("BRL=X", "Dólar em reais", "Câmbio")],
+    "dólar": [("BRL=X", "Dólar em reais", "Câmbio")],
+    "euro": [("EURBRL=X", "Euro em reais", "Câmbio")],
+    "libra": [("GBPBRL=X", "Libra em reais", "Câmbio")],
+    "ibovespa": [("^BVSP", "Ibovespa (índice da B3)", "Índice")],
+    "ouro": [("GC=F", "Ouro (onça, em dólar)", "Commodity")],
+    "petroleo": [("BZ=F", "Petróleo Brent (em dólar)", "Commodity")],
+    "petróleo": [("BZ=F", "Petróleo Brent (em dólar)", "Commodity")],
+    "nubank": [("ROXO34.SA", "Nubank (BDR na B3)", "Ação B3"), ("NU", "Nu Holdings (EUA)", "Ação EUA")],
+}
+BOLSAS_EUA = {"NMS", "NYQ", "NGM", "NCM", "ASE", "PCX", "BTS"}
+_cache_busca = {}
+
+
+def _tipo_ativo(item):
+    tipo, bolsa, simbolo = item.get("quoteType"), item.get("exchange"), item.get("symbol", "")
+    if bolsa == "SAO" and re.fullmatch(r"[A-Z0-9]{4}\d{1,2}\.SA", simbolo):  # ignora fracionário (F) e variações
+        return "Ação B3" if tipo == "EQUITY" else "Fundo B3"
+    if tipo == "CRYPTOCURRENCY" and simbolo.endswith("-USD"):
+        return "Cripto"
+    if tipo == "CURRENCY":
+        return "Câmbio"
+    if bolsa in BOLSAS_EUA and tipo in ("EQUITY", "ETF"):
+        return "Ação EUA" if tipo == "EQUITY" else "ETF EUA"
+    return None  # futuros, outras bolsas etc. ficam de fora
+
+
+def buscar_ativos(texto, limite=8):
+    """Ativos pelo nome ou código: [{"ticker", "nome", "tipo"}], com a B3 primeiro."""
+    chave = texto.strip().lower()
+    if len(chave) < 2:
+        return []
+    agora = time.time()
+    if chave in _cache_busca and agora - _cache_busca[chave][0] < 3600:
+        return _cache_busca[chave][1]
+
+    resultado = [{"ticker": t, "nome": n, "tipo": tp} for t, n, tp in ATALHOS.get(chave, [])]
+    try:
+        itens = yf.Search(texto, max_results=15, news_count=0).quotes
+    except Exception:
+        itens = []
+    ordem = {"Ação B3": 0, "Fundo B3": 1, "Cripto": 2, "Câmbio": 3, "Ação EUA": 4, "ETF EUA": 5}
+    achados = []
+    for item in itens:
+        tipo = _tipo_ativo(item)
+        simbolo = item.get("symbol", "")
+        if tipo and all(r["ticker"] != simbolo for r in resultado):
+            nome = NOMES.get(simbolo) or item.get("longname") or item.get("shortname") or simbolo
+            achados.append({"ticker": simbolo, "nome": " ".join(nome.split()), "tipo": tipo})
+    achados.sort(key=lambda r: ordem[r["tipo"]])
+    resultado = (resultado + achados)[:limite]
+    _cache_busca[chave] = (agora, resultado)
+    return resultado
 
 
 def baixar(ticker):

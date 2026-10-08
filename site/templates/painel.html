@@ -54,10 +54,17 @@
   </div>
   {% endfor %}
 
-  <form method="post" action="{{ url_for('adicionar_favorito') }}" class="linha-form">
-      {{ campo_csrf() }}
-    <input type="text" name="ticker" placeholder="Outro código (ex.: TAEE11.SA, ADA-USD)" required>
-    <button type="submit">Adicionar</button>
+  <h3 class="grupo">Procurar outro</h3>
+  <div class="busca" id="busca">
+    <input type="search" id="buscaCampo" autocomplete="off" spellcheck="false"
+           placeholder="Digite o nome: Nubank, Taesa, Ethereum, dólar, Apple…"
+           aria-label="Procurar ação, cripto ou moeda pelo nome" aria-autocomplete="list" aria-controls="buscaLista">
+    <ul class="busca-lista" id="buscaLista" role="listbox" hidden></ul>
+  </div>
+  <form method="post" action="{{ url_for('adicionar_favorito') }}" id="buscaForm" hidden>
+    {{ campo_csrf() }}
+    <input type="hidden" name="ticker" id="buscaTicker">
+    <input type="hidden" name="nome" id="buscaNome">
   </form>
 </section>
 
@@ -75,6 +82,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='busca.js') }}"></script>
 <script>
   const pct = new Intl.NumberFormat("pt-BR", { style: "percent", minimumFractionDigits: 2, signDisplay: "always" });
   const cor = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
